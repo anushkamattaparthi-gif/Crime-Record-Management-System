@@ -122,6 +122,239 @@ java CRMS_GUI
 
 The Crime Record Management System window will open.
 
+code:
+
+import javax.swing.;
+import javax.swing.table.DefaultTableModel;
+import java.awt.;
+import java.awt.event.*;
+import java.io.FileWriter;
+import java.util.ArrayList;
+
+public class CRMS_GUI extends JFrame {
+
+private final ArrayList<CrimeRecord> records = new ArrayList<>();  
+private final DefaultTableModel tableModel;  
+private final JTable table;  
+
+private final JTextField tfName, tfAge, tfGender, tfCrime, tfStatus, tfOfficer, tfLocation, tfDate;  
+
+// Search components  
+private final JTextField tfSearch;  
+
+public CRMS_GUI() {  
+    super("Crime Record Management System (CRMS)");  
+    setDefaultCloseOperation(EXIT_ON_CLOSE);  
+    setSize(900, 650);  
+    setLayout(new BorderLayout(10, 10));  
+
+    // ==== Top Input Panel ====  
+    JPanel inputPanel = new JPanel(new GridLayout(2, 8, 5, 5));  
+    tfName = new JTextField(); tfAge = new JTextField(); tfGender = new JTextField();  
+    tfCrime = new JTextField(); tfStatus = new JTextField();  
+    tfOfficer = new JTextField(); tfLocation = new JTextField(); tfDate = new JTextField();  
+
+    inputPanel.add(new JLabel("Criminal Name:")); inputPanel.add(tfName);  
+    inputPanel.add(new JLabel("Age:")); inputPanel.add(tfAge);  
+    inputPanel.add(new JLabel("Gender:")); inputPanel.add(tfGender);  
+    inputPanel.add(new JLabel("Crime Type:")); inputPanel.add(tfCrime);  
+
+    inputPanel.add(new JLabel("Case Status:")); inputPanel.add(tfStatus);  
+    inputPanel.add(new JLabel("Officer Name:")); inputPanel.add(tfOfficer);  
+    inputPanel.add(new JLabel("Location:")); inputPanel.add(tfLocation);  
+    inputPanel.add(new JLabel("Date (YYYY-MM-DD):")); inputPanel.add(tfDate);  
+
+    add(inputPanel, BorderLayout.NORTH);  
+
+    // ==== Center Table ====  
+    String[] cols = {"Case ID", "Criminal", "Age", "Gender", "Crime", "Status", "Officer", "Location", "Date"};  
+    tableModel = new DefaultTableModel(cols, 0);  
+    table = new JTable(tableModel);  
+    add(new JScrollPane(table), BorderLayout.CENTER);  
+
+    // ==== Search Panel ====  
+    JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));  
+    tfSearch = new JTextField(20);  
+    JButton searchBtn = new JButton("Search");  
+    JButton resetBtn = new JButton("Reset");  
+
+    searchPanel.add(new JLabel("Search:"));  
+    searchPanel.add(tfSearch);  
+    searchPanel.add(searchBtn);  
+    searchPanel.add(resetBtn);  
+
+    add(searchPanel, BorderLayout.WEST);  
+
+    // ==== Bottom Buttons ====  
+    JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));  
+    JButton addBtn = new JButton("Add Record");  
+    JButton delBtn = new JButton("Delete Record");  
+    JButton updateBtn = new JButton("Update Status");  
+    JButton saveBtn = new JButton("Save to File");  
+    JButton exitBtn = new JButton("Exit");  
+
+    btnPanel.add(addBtn);  
+    btnPanel.add(delBtn);  
+    btnPanel.add(updateBtn);  
+    btnPanel.add(saveBtn);  
+    btnPanel.add(exitBtn);  
+    add(btnPanel, BorderLayout.SOUTH);  
+
+    // ==== Button Listeners ====  
+    addBtn.addActionListener(e -> addRecord());  
+    delBtn.addActionListener(e -> deleteRecord());  
+    updateBtn.addActionListener(e -> updateStatus());  
+    saveBtn.addActionListener(e -> saveToFile());  
+    exitBtn.addActionListener(e -> System.exit(0));  
+
+    searchBtn.addActionListener(e -> searchRecord());  
+    resetBtn.addActionListener(e -> resetSearch());  
+
+    setLocationRelativeTo(null);  
+    setVisible(true);  
+}  
+
+// ===== Add Record =====  
+private void addRecord() {  
+    try {  
+        String name = tfName.getText();  
+        int age = Integer.parseInt(tfAge.getText());  
+        String gender = tfGender.getText();  
+        String crime = tfCrime.getText();  
+        String status = tfStatus.getText();  
+        String officer = tfOfficer.getText();  
+        String location = tfLocation.getText();  
+        String date = tfDate.getText();  
+
+        CrimeRecord r = new CrimeRecord(name, age, gender, crime, status, officer, location, date);  
+        records.add(r);  
+
+        tableModel.addRow(new Object[]{  
+                r.caseId, r.name, r.age, r.gender, r.crimeType,  
+                r.caseStatus, r.officer, r.location, r.date  
+        });  
+
+        clearInputs();  
+        JOptionPane.showMessageDialog(this, "Record Added!");  
+    } catch (NumberFormatException ex) {  
+        JOptionPane.showMessageDialog(this, "Age must be a number!", "Error", JOptionPane.ERROR_MESSAGE);  
+    }  
+}  
+
+// ===== Delete Record =====  
+private void deleteRecord() {  
+    int row = table.getSelectedRow();  
+    if (row >= 0) {  
+        records.remove(row);  
+        tableModel.removeRow(row);  
+        JOptionPane.showMessageDialog(this, "Record Deleted!");  
+    } else {  
+        JOptionPane.showMessageDialog(this, "Select a record first!");  
+    }  
+}  
+
+// ===== Update Status =====  
+private void updateStatus() {  
+    int row = table.getSelectedRow();  
+    if (row >= 0) {  
+        String newStatus = JOptionPane.showInputDialog(this, "Enter new status:");  
+        if (newStatus != null && !newStatus.trim().isEmpty()) {  
+            tableModel.setValueAt(newStatus, row, 5);  
+            records.get(row).caseStatus = newStatus;  
+            JOptionPane.showMessageDialog(this, "Status Updated!");  
+        }  
+    } else {  
+        JOptionPane.showMessageDialog(this, "Select a record to update!");  
+    }  
+}  
+
+// ===== Save to File =====  
+private void saveToFile() {  
+    try (FileWriter fw = new FileWriter("CrimeRecords_GUI.txt")) {  
+        for (CrimeRecord r : records) {  
+            fw.write(r.toString() + "\n");  
+        }  
+        JOptionPane.showMessageDialog(this, "Saved to CrimeRecords_GUI.txt");  
+    } catch (Exception e) {  
+        JOptionPane.showMessageDialog(this, "Error saving: " + e.getMessage());  
+    }  
+}  
+
+// ===== Search Records =====  
+private void searchRecord() {  
+    String keyword = tfSearch.getText().toLowerCase();  
+    if (keyword.isEmpty()) {  
+        JOptionPane.showMessageDialog(this, "Enter search text!");  
+        return;  
+    }  
+
+    tableModel.setRowCount(0); // clear table  
+
+    for (CrimeRecord r : records) {  
+        if (String.valueOf(r.caseId).contains(keyword) ||  
+            r.name.toLowerCase().contains(keyword) ||  
+            r.crimeType.toLowerCase().contains(keyword) ||  
+            r.officer.toLowerCase().contains(keyword) ||  
+            r.caseStatus.toLowerCase().contains(keyword)) {  
+
+            tableModel.addRow(new Object[]{  
+                    r.caseId, r.name, r.age, r.gender, r.crimeType,  
+                    r.caseStatus, r.officer, r.location, r.date  
+            });  
+        }  
+    }  
+}  
+
+// ===== Reset Search =====  
+private void resetSearch() {  
+    tfSearch.setText("");  
+    tableModel.setRowCount(0);  
+    for (CrimeRecord r : records) {  
+        tableModel.addRow(new Object[]{  
+                r.caseId, r.name, r.age, r.gender, r.crimeType,  
+                r.caseStatus, r.officer, r.location, r.date  
+        });  
+    }  
+}  
+
+// ===== Clear Input Boxes =====  
+private void clearInputs() {  
+    tfName.setText(""); tfAge.setText(""); tfGender.setText(""); tfCrime.setText("");  
+    tfStatus.setText(""); tfOfficer.setText(""); tfLocation.setText(""); tfDate.setText("");  
+}  
+
+// ===== Crime Record Class =====  
+static class CrimeRecord {  
+    static int counter = 1001;  
+    int caseId;  
+    String name, gender, crimeType, caseStatus, officer, location, date;  
+    int age;  
+
+    CrimeRecord(String name, int age, String gender, String crimeType,  
+                String caseStatus, String officer, String location, String date) {  
+        this.caseId = counter++;  
+        this.name = name;  
+        this.age = age;  
+        this.gender = gender;  
+        this.crimeType = crimeType;  
+        this.caseStatus = caseStatus;  
+        this.officer = officer;  
+        this.location = location;  
+        this.date = date;  
+    }  
+
+    @Override  
+    public String toString() {  
+        return "Case ID: " + caseId + ", " + name + " (" + crimeType + ") - " + caseStatus;  
+    }  
+}  
+
+public static void main(String[] args) {  
+    SwingUtilities.invokeLater(CRMS_GUI::new);  
+}
+
+}
+
 📖 How to Use
 
 1. Add a Record
